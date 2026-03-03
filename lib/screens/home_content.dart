@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
 import 'mentor_profile_screen.dart';
+import '../widgets/glow_circle.dart';
 
 /// The home tab content (shown inside HomeDashboardScreen).
 class HomeContent extends StatelessWidget {
@@ -22,9 +22,7 @@ class HomeContent extends StatelessWidget {
           Positioned(
             top: -80,
             right: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.07),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.07)),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -228,23 +226,6 @@ class HomeContent extends StatelessWidget {
 // ═══════════════════════════════════════
 // Sub-widgets
 // ═══════════════════════════════════════
-
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 260,
-        height: 260,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      ),
-    );
-  }
-}
 
 class _StatCard extends StatelessWidget {
   final IconData icon;

@@ -1,7 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import 'profile_setup_screen.dart';
+import '../widgets/glow_circle.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -71,7 +72,19 @@ class _RegisterScreenState extends State<RegisterScreen>
         );
         return;
       }
-      // TODO: Implement register logic
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (_, _, _) => const ProfileSetupScreen(),
+          transitionsBuilder: (_, anim, _, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+        (_) => false,
+      );
     }
   }
 
@@ -93,9 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           Positioned(
             bottom: -80,
             left: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.08),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.08)),
           ),
 
           SafeArea(
@@ -411,24 +422,6 @@ class _RegisterScreenState extends State<RegisterScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 260,
-        height: 260,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }

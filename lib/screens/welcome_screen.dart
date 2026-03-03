@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../widgets/glow_circle.dart';
 import 'login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -103,16 +103,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           Positioned(
             top: -90,
             right: -90,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.10),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.10)),
           ),
           Positioned(
             bottom: -90,
             left: -90,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.10),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.10)),
           ),
 
           // ── Main content ──
@@ -226,23 +222,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 // ═══════════════════════════════════════
 // Sub-widgets
 // ═══════════════════════════════════════
-
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 280,
-        height: 280,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      ),
-    );
-  }
-}
 
 class _LogoSection extends StatelessWidget {
   final bool isDark;

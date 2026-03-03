@@ -1,10 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'profile_setup_screen.dart';
+import '../widgets/glow_circle.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -111,9 +111,7 @@ class _LoginScreenState extends State<LoginScreen>
           Positioned(
             top: -80,
             right: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.08),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.08)),
           ),
 
           SafeArea(
@@ -406,24 +404,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 260,
-        height: 260,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }

@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../widgets/glow_circle.dart';
 import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -126,18 +126,14 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned(
             top: -80,
             right: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.12),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.12)),
           ),
 
           // ── Decorative soft glow – Bottom Left ──
           Positioned(
             bottom: -80,
             left: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.12),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.12)),
           ),
 
           // ── Main content ──
@@ -195,24 +191,6 @@ class _SplashScreenState extends State<SplashScreen>
 // ════════════════════════════════════════════
 // Sub-widgets (private, focused, reusable)
 // ════════════════════════════════════════════
-
-/// Soft blurred glow circle used as background decoration.
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 280,
-        height: 280,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      ),
-    );
-  }
-}
 
 /// The icon box with gradient shine and shadow.
 class _LogoBox extends StatelessWidget {

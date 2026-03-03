@@ -4,6 +4,7 @@ class User {
   final String email;
   final String? profileImageUrl;
   final String bio;
+  final String role; // 'mentor' or 'mentee'
 
   User({
     required this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     this.profileImageUrl,
     required this.bio,
+    this.role = 'mentee',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class User {
       email: json['email'],
       profileImageUrl: json['profileImageUrl'],
       bio: json['bio'] ?? '',
+      role: json['role'] ?? 'mentee',
     );
   }
 
@@ -30,6 +33,7 @@ class User {
       'email': email,
       'profileImageUrl': profileImageUrl,
       'bio': bio,
+      'role': role,
     };
   }
 }

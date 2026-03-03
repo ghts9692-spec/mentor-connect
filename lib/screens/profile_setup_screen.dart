@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
 import 'home_dashboard_screen.dart';
+import '../widgets/glow_circle.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -89,9 +89,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
           Positioned(
             top: -80,
             right: -80,
-            child: _GlowCircle(
-              color: AppColors.primary.withValues(alpha: 0.08),
-            ),
+            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.08)),
           ),
 
           SafeArea(
@@ -383,23 +381,6 @@ class _RoleCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  const _GlowCircle({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-      child: Container(
-        width: 260,
-        height: 260,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }

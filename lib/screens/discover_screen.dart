@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/mentor_model.dart';
 import 'mentor_profile_screen.dart';
 import '../widgets/glow_circle.dart';
 
@@ -21,45 +22,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     ...AppStrings.interestCategories,
   ];
 
-  final List<Map<String, dynamic>> _mentors = [
-    {
-      'name': 'Alex Rivera',
-      'expertise': 'UX Design',
-      'rating': 4.8,
-      'reviews': 24,
-    },
-    {
-      'name': 'Sarah Jenkins',
-      'expertise': 'Product Design',
-      'rating': 4.9,
-      'reviews': 42,
-    },
-    {
-      'name': 'David Chen',
-      'expertise': 'Engineering',
-      'rating': 4.8,
-      'reviews': 31,
-    },
-    {
-      'name': 'Emily Watson',
-      'expertise': 'Marketing',
-      'rating': 4.7,
-      'reviews': 18,
-    },
-    {
-      'name': 'Michael Kim',
-      'expertise': 'Data Science',
-      'rating': 4.9,
-      'reviews': 56,
-    },
-    {
-      'name': 'Lisa Thompson',
-      'expertise': 'Leadership',
-      'rating': 4.6,
-      'reviews': 22,
-    },
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -70,6 +32,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tt = Theme.of(context).textTheme;
+
+    final query = _searchController.text.toLowerCase().trim();
+
+    // Filter mentors based on selected category and search query
+    final mentors = Mentor.sampleMentors.where((m) {
+      final matchesCategory =
+          _selectedFilter == AppStrings.all ||
+          m.expertise.toLowerCase().contains(_selectedFilter.toLowerCase());
+      final matchesSearch =
+          query.isEmpty ||
+          m.name.toLowerCase().contains(query) ||
+          m.expertise.toLowerCase().contains(query);
+
+      return matchesCategory && matchesSearch;
+    }).toList();
 
     return Scaffold(
       backgroundColor: isDark
@@ -112,6 +89,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                     child: TextField(
                       controller: _searchController,
+                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: AppStrings.searchHint,
                         prefixIcon: Icon(
@@ -195,18 +173,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           crossAxisSpacing: 14,
                           childAspectRatio: 0.78,
                         ),
-                    itemCount: _mentors.length,
+                    itemCount: mentors.length,
                     itemBuilder: (_, i) {
-                      final m = _mentors[i];
+                      final m = mentors[i];
                       return _MentorGridCard(
-                        name: m['name'],
-                        expertise: m['expertise'],
-                        rating: m['rating'],
-                        reviews: m['reviews'],
+                        name: m.name,
+                        expertise: m.expertise,
+                        rating: m.rating,
+                        reviews: m.reviews,
                         isDark: isDark,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const MentorProfileScreen(),
+                            builder: (_) => MentorProfileScreen(mentor: m),
                           ),
                         ),
                       );

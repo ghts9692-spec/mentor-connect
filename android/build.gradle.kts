@@ -1,3 +1,8 @@
+plugins {
+    // google-services is provided by Firebase plugin classpath (4.3.15)
+    // Do not redeclare a different version here to avoid conflicts
+}
+
 allprojects {
     repositories {
         google()

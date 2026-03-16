@@ -1,17 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/mentor_model.dart';
+import '../providers/user_provider.dart';
+import '../providers/sessions_provider.dart';
 import 'mentor_profile_screen.dart';
 import '../widgets/glow_circle.dart';
 
 /// The home tab content (shown inside HomeDashboardScreen).
-class HomeContent extends StatelessWidget {
+class HomeContent extends ConsumerWidget {
   const HomeContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tt = Theme.of(context).textTheme;
+    final user = ref.watch(userProvider);
+    final displayName = user?.name.split(' ').first ?? 'there';
+
+    // Session calculations
+    final sessionsAsync = ref.watch(sessionsProvider);
+    final sessions = sessionsAsync.value ?? [];
+
+    final totalSessions = sessions.length;
+    final uniqueMentors = sessions.map((s) => s.mentorId).toSet().length;
+
+    int totalMinutes = 0;
+    for (final s in sessions) {
+      final mins =
+          int.tryParse(s.duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      totalMinutes += mins;
+    }
+    final totalHours = (totalMinutes / 60).round();
+
+    final upcomingSessions =
+        sessions
+            .where(
+              (s) =>
+                  s.status == 'upcoming' && s.dateTime.isAfter(DateTime.now()),
+            )
+            .toList()
+          ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+    String formatSessionTime(DateTime dt) {
+      final now = DateTime.now();
+      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+      final isTomorrow =
+          dt.year == tomorrow.year &&
+          dt.month == tomorrow.month &&
+          dt.day == tomorrow.day;
+
+      final timeStr =
+          '${dt.hour > 12
+              ? dt.hour - 12
+              : dt.hour == 0
+              ? 12
+              : dt.hour}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
+
+      if (isTomorrow) return 'Tomorrow, $timeStr';
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${months[dt.month - 1]} ${dt.day}, $timeStr';
+    }
+
+    // Use first 3 sample mentors for recommendations
+    final recommendedMentors = Mentor.sampleMentors.take(3).toList();
 
     return Scaffold(
       backgroundColor: isDark
@@ -40,7 +106,7 @@ class HomeContent extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${AppStrings.goodMorning}, John 👋',
+                              '${AppStrings.goodMorning}, $displayName 👋',
                               style: tt.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: isDark
@@ -50,7 +116,7 @@ class HomeContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Ready to learn something new?',
+                              AppStrings.readyToLearn,
                               style: tt.bodyMedium?.copyWith(
                                 color: isDark
                                     ? Colors.white.withValues(alpha: 0.6)
@@ -113,7 +179,7 @@ class HomeContent extends StatelessWidget {
                       Expanded(
                         child: _StatCard(
                           icon: Icons.videocam_rounded,
-                          value: '12',
+                          value: '$totalSessions',
                           label: AppStrings.sessions,
                           color: AppColors.primary,
                           isDark: isDark,
@@ -123,7 +189,7 @@ class HomeContent extends StatelessWidget {
                       Expanded(
                         child: _StatCard(
                           icon: Icons.people_rounded,
-                          value: '5',
+                          value: '$uniqueMentors',
                           label: AppStrings.mentors,
                           color: AppColors.success,
                           isDark: isDark,
@@ -133,7 +199,7 @@ class HomeContent extends StatelessWidget {
                       Expanded(
                         child: _StatCard(
                           icon: Icons.schedule_rounded,
-                          value: '24',
+                          value: '$totalHours',
                           label: AppStrings.hours,
                           color: AppColors.warning,
                           isDark: isDark,
@@ -152,37 +218,24 @@ class HomeContent extends StatelessWidget {
                   const SizedBox(height: 14),
                   SizedBox(
                     height: 200,
-                    child: ListView(
+                    child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      children: [
-                        _MentorCard(
-                          name: 'Sarah Jenkins',
-                          expertise: 'Product Design',
-                          rating: 4.9,
+                      itemCount: recommendedMentors.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 14),
+                      itemBuilder: (_, i) {
+                        final m = recommendedMentors[i];
+                        return _MentorCard(
+                          name: m.name,
+                          expertise: m.expertise,
+                          rating: m.rating,
                           isDark: isDark,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const MentorProfileScreen(),
+                              builder: (_) => MentorProfileScreen(mentor: m),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 14),
-                        _MentorCard(
-                          name: 'David Chen',
-                          expertise: 'Engineering',
-                          rating: 4.8,
-                          isDark: isDark,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 14),
-                        _MentorCard(
-                          name: 'Emily Watson',
-                          expertise: 'Marketing',
-                          rating: 4.7,
-                          isDark: isDark,
-                          onTap: () {},
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
 
@@ -194,23 +247,51 @@ class HomeContent extends StatelessWidget {
                     isDark: isDark,
                   ),
                   const SizedBox(height: 14),
-                  _SessionCard(
-                    mentorName: 'Sarah Jenkins',
-                    topic: 'Portfolio Review',
-                    dateTime: 'Tomorrow, 10:00 AM',
-                    status: AppStrings.confirmed,
-                    statusColor: AppColors.success,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 12),
-                  _SessionCard(
-                    mentorName: 'David Chen',
-                    topic: 'Career Guidance',
-                    dateTime: 'Mar 5, 2:00 PM',
-                    status: AppStrings.pending,
-                    statusColor: AppColors.warning,
-                    isDark: isDark,
-                  ),
+
+                  if (upcomingSessions.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'No upcoming sessions yet.',
+                          style: tt.bodyMedium?.copyWith(
+                            color: isDark ? Colors.white54 : AppColors.slate500,
+                          ),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    if (upcomingSessions.isNotEmpty)
+                      _SessionCard(
+                        mentorName: upcomingSessions[0].mentorName,
+                        topic: upcomingSessions[0].topic,
+                        dateTime: formatSessionTime(
+                          upcomingSessions[0].dateTime,
+                        ),
+                        status:
+                            upcomingSessions[0].status[0].toUpperCase() +
+                            upcomingSessions[0].status.substring(1),
+                        statusColor: AppColors.success,
+                        isDark: isDark,
+                      ),
+                    if (upcomingSessions.length > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _SessionCard(
+                          mentorName: upcomingSessions[1].mentorName,
+                          topic: upcomingSessions[1].topic,
+                          dateTime: formatSessionTime(
+                            upcomingSessions[1].dateTime,
+                          ),
+                          status:
+                              upcomingSessions[1].status[0].toUpperCase() +
+                              upcomingSessions[1].status.substring(1),
+                          statusColor: AppColors
+                              .warning, // Using warning color for the 'Pending' look if desired, or just primary
+                          isDark: isDark,
+                        ),
+                      ),
+                  ],
 
                   const SizedBox(height: 24),
                 ],

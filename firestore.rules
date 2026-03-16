@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users: only the user can read/write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Sessions: mentor or mentee can read; mentee creates; either party can update status
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.menteeId || 
+         request.auth.uid == resource.data.mentorId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.menteeId;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.menteeId || 
+         request.auth.uid == resource.data.mentorId);
+    }
+  }
+}

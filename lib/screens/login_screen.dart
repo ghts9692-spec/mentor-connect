@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
+import '../providers/user_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'profile_setup_screen.dart';
+import 'home_dashboard_screen.dart';
 import '../widgets/glow_circle.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isEmailLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _headerFade;
@@ -61,21 +66,40 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _onLogin() {
-    if (_formKey.currentState?.validate() ?? false) {
-      Navigator.of(context).pushAndRemoveUntil(
-        PageRouteBuilder(
-          pageBuilder: (_, _, _) => const ProfileSetupScreen(),
-          transitionsBuilder: (_, anim, _, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 400),
+  // --- Routing Logic ---
+  void _navigateToDashboard(User user) {
+    ref.read(userProvider.notifier).setUser(user);
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HomeDashboardScreen(),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+          child: child,
         ),
-        (_) => false,
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+      (_) => false,
+    );
+  }
+
+  Future<void> _onLogin() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isEmailLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
+      if (!mounted) return;
+      _navigateToDashboard(user);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${AppStrings.loginFailed}: $e')));
+    } finally {
+      if (mounted) setState(() => _isEmailLoading = false);
     }
   }
 
@@ -300,66 +324,23 @@ class _LoginScreenState extends State<LoginScreen>
 
                                   // Login button
                                   ElevatedButton(
-                                    onPressed: _onLogin,
-                                    child: const Text(AppStrings.logIn),
+                                    onPressed: _isEmailLoading
+                                        ? null
+                                        : _onLogin,
+                                    child: _isEmailLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(AppStrings.logIn),
                                   ),
 
-                                  const SizedBox(height: 24),
 
-                                  // OR divider
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Divider(
-                                          color: isDark
-                                              ? const Color(0xFF334155)
-                                              : const Color(0xFFE2E8F0),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        child: Text(
-                                          AppStrings.orDivider,
-                                          style: tt.labelSmall?.copyWith(
-                                            color: isDark
-                                                ? Colors.white.withValues(
-                                                    alpha: 0.4,
-                                                  )
-                                                : const Color(0xFF94A3B8),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Divider(
-                                          color: isDark
-                                              ? const Color(0xFF334155)
-                                              : const Color(0xFFE2E8F0),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
 
-                                  const SizedBox(height: 24),
-
-                                  // Google sign-in
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      // TODO: Google sign-in
-                                    },
-                                    icon: const Text(
-                                      'G',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    label: const Text(
-                                      AppStrings.continueWithGoogle,
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),

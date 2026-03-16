@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/user_model.dart';
+import '../providers/user_provider.dart';
 import 'home_dashboard_screen.dart';
 import '../widgets/glow_circle.dart';
 
-class ProfileSetupScreen extends StatefulWidget {
+class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
   @override
-  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen>
+class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen>
     with SingleTickerProviderStateMixin {
   String? _selectedRole;
   final Set<String> _selectedInterests = {};
+  bool _isSaving = false;
 
   late AnimationController _animController;
   late Animation<double> _headerFade;
@@ -55,25 +59,50 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     super.dispose();
   }
 
-  void _onContinue() {
+  Future<void> _onContinue() async {
     if (_selectedRole == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please select your role')));
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.selectYourRole)));
       return;
     }
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, _, _) => const HomeDashboardScreen(),
-        transitionsBuilder: (_, anim, _, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
+    setState(() => _isSaving = true);
+    try {
+      final currentUser = ref.read(userProvider);
+      if (currentUser != null) {
+        final updatedUser = User(
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          profileImageUrl: currentUser.profileImageUrl,
+          bio: currentUser.bio,
+          role: _selectedRole!,
+          interests: _selectedInterests.toList(),
+        );
+        // TODO: PATCH /api/auth/profile/ once backend endpoint is finalized.
+        ref.read(userProvider.notifier).setUser(updatedUser);
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, _, _) => const HomeDashboardScreen(),
+          transitionsBuilder: (_, anim, _, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -276,8 +305,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _onContinue,
-                              child: const Text(AppStrings.continueText),
+                              onPressed: _isSaving ? null : _onContinue,
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(AppStrings.continueText),
                             ),
                           ),
 

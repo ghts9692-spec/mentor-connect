@@ -1,54 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/conversation_model.dart';
+import '../providers/chat_provider.dart';
 import '../widgets/glow_circle.dart';
+import 'chat_detail_screen.dart';
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends ConsumerWidget {
   final bool showNav;
   const ChatScreen({super.key, this.showNav = true});
 
-  static final List<Map<String, dynamic>> _conversations = [
-    {
-      'name': 'Sarah Jenkins',
-      'message': "Let's schedule our next session...",
-      'time': '2m',
-      'unread': 2,
-      'online': true,
-    },
-    {
-      'name': 'David Chen',
-      'message': 'Thanks for the feedback on my...',
-      'time': '1h',
-      'unread': 0,
-      'online': true,
-    },
-    {
-      'name': 'Emily Watson',
-      'message': 'The design review went well!',
-      'time': 'Yesterday',
-      'unread': 0,
-      'online': false,
-    },
-    {
-      'name': 'Michael Kim',
-      'message': 'Can we discuss the data pipeline?',
-      'time': 'Yesterday',
-      'unread': 1,
-      'online': false,
-    },
-    {
-      'name': 'Lisa Thompson',
-      'message': 'Great leadership workshop today!',
-      'time': '2d',
-      'unread': 0,
-      'online': false,
-    },
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tt = Theme.of(context).textTheme;
+    final conversationsAsync = ref.watch(conversationsProvider);
 
     return Scaffold(
       backgroundColor: isDark
@@ -59,12 +26,15 @@ class ChatScreen extends StatelessWidget {
           Positioned(
             top: -80,
             right: -80,
-            child: GlowCircle(color: AppColors.primary.withValues(alpha: 0.07)),
+            child: GlowCircle(
+              color: AppColors.primary.withValues(alpha: 0.07),
+            ),
           ),
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ─── Header ──────────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Text(
@@ -78,7 +48,7 @@ class ChatScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Search bar
+                // ─── Search Bar ───────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
@@ -86,7 +56,8 @@ class ChatScreen extends StatelessWidget {
                       color: isDark ? AppColors.slate800 : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isDark ? AppColors.slate700 : AppColors.slate200,
+                        color:
+                            isDark ? AppColors.slate700 : AppColors.slate200,
                       ),
                     ),
                     child: TextField(
@@ -111,24 +82,67 @@ class ChatScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Conversation list
+                // ─── Conversation List ─────────────────────────────────────
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _conversations.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: isDark ? AppColors.slate700 : AppColors.slate100,
+                  child: conversationsAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(),
                     ),
-                    itemBuilder: (_, i) {
-                      final c = _conversations[i];
-                      return _ChatTile(
-                        name: c['name'],
-                        message: c['message'],
-                        time: c['time'],
-                        unread: c['unread'],
-                        isOnline: c['online'],
-                        isDark: isDark,
+                    error: (e, _) => Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.wifi_off_rounded,
+                            size: 52,
+                            color: isDark
+                                ? AppColors.slate600
+                                : AppColors.slate300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Could not load messages.',
+                            style: tt.bodyMedium?.copyWith(
+                              color: isDark
+                                  ? AppColors.slate400
+                                  : AppColors.slate500,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextButton.icon(
+                            onPressed: () =>
+                                ref.invalidate(conversationsProvider),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    data: (conversations) {
+                      if (conversations.isEmpty) {
+                        return _EmptyConversations(isDark: isDark);
+                      }
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: conversations.length,
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          color:
+                              isDark ? AppColors.slate700 : AppColors.slate100,
+                        ),
+                        itemBuilder: (_, i) {
+                          final c = conversations[i];
+                          return _ChatTile(
+                            conversation: c,
+                            isDark: isDark,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ChatDetailScreen(conversation: c),
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
@@ -142,133 +156,203 @@ class ChatScreen extends StatelessWidget {
   }
 }
 
-class _ChatTile extends StatelessWidget {
-  final String name;
-  final String message;
-  final String time;
-  final int unread;
-  final bool isOnline;
+// ─── Empty State ──────────────────────────────────────────────────────────────
+class _EmptyConversations extends StatelessWidget {
   final bool isDark;
-
-  const _ChatTile({
-    required this.name,
-    required this.message,
-    required this.time,
-    required this.unread,
-    required this.isOnline,
-    required this.isDark,
-  });
+  const _EmptyConversations({required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Avatar with online indicator
-          Stack(
-            children: [
-              Container(
-                height: 50,
-                width: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: AppColors.primary,
-                  size: 26,
-                ),
-              ),
-              if (isOnline)
-                Positioned(
-                  bottom: 2,
-                  right: 2,
-                  child: Container(
-                    height: 13,
-                    width: 13,
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? AppColors.backgroundDark : Colors.white,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: tt.bodyMedium?.copyWith(
-                    fontWeight: unread > 0 ? FontWeight.w700 : FontWeight.w600,
-                    color: isDark ? Colors.white : AppColors.slate900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: tt.bodySmall?.copyWith(
-                    color: unread > 0
-                        ? (isDark
-                              ? Colors.white.withValues(alpha: 0.7)
-                              : AppColors.slate700)
-                        : (isDark
-                              ? Colors.white.withValues(alpha: 0.4)
-                              : AppColors.slate400),
-                    fontWeight: unread > 0 ? FontWeight.w500 : FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 42,
+              color: AppColors.primary,
             ),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                time,
-                style: tt.labelSmall?.copyWith(
-                  color: unread > 0
-                      ? AppColors.primary
-                      : (isDark ? AppColors.slate500 : AppColors.slate400),
-                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-              if (unread > 0) ...[
-                const SizedBox(height: 6),
+          const SizedBox(height: 20),
+          Text(
+            'No Messages Yet',
+            style: tt.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : AppColors.slate900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Conversations with your mentors\nwill appear here.',
+            textAlign: TextAlign.center,
+            style: tt.bodySmall?.copyWith(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : AppColors.slate500,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Chat Tile ────────────────────────────────────────────────────────────────
+class _ChatTile extends StatelessWidget {
+  final Conversation conversation;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ChatTile({
+    required this.conversation,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  /// Format lastMessageTime as relative time label (e.g. "2m", "1h", "Yesterday")
+  String _relativeTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${dt.day}/${dt.month}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final unread = conversation.unreadCount;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            // Avatar with online dot
+            Stack(
+              children: [
                 Container(
-                  height: 20,
-                  width: 20,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
+                  height: 50,
+                  width: 50,
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.1),
                   ),
-                  child: Center(
-                    child: Text(
-                      unread.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.primary,
+                    size: 26,
+                  ),
+                ),
+                if (conversation.isOnline)
+                  Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      height: 13,
+                      width: 13,
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.backgroundDark
+                              : Colors.white,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(width: 14),
+
+            // Name + last message
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    conversation.participantName,
+                    style: tt.bodyMedium?.copyWith(
+                      fontWeight:
+                          unread > 0 ? FontWeight.w700 : FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.slate900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    conversation.lastMessage,
+                    style: tt.bodySmall?.copyWith(
+                      color: unread > 0
+                          ? (isDark
+                                ? Colors.white.withValues(alpha: 0.7)
+                                : AppColors.slate700)
+                          : (isDark
+                                ? Colors.white.withValues(alpha: 0.4)
+                                : AppColors.slate400),
+                      fontWeight:
+                          unread > 0 ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Time + unread badge
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _relativeTime(conversation.lastMessageTime),
+                  style: tt.labelSmall?.copyWith(
+                    color: unread > 0
+                        ? AppColors.primary
+                        : (isDark ? AppColors.slate500 : AppColors.slate400),
+                    fontWeight:
+                        unread > 0 ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+                if (unread > 0) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 20,
+                    width: 20,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        unread > 9 ? '9+' : unread.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

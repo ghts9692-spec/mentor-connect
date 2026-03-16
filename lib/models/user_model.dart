@@ -5,6 +5,7 @@ class User {
   final String? profileImageUrl;
   final String bio;
   final String role; // 'mentor' or 'mentee'
+  final List<String> interests;
 
   User({
     required this.id,
@@ -13,16 +14,38 @@ class User {
     this.profileImageUrl,
     required this.bio,
     this.role = 'mentee',
+    this.interests = const [],
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final name = json['name'];
+    final email = json['email'];
+
+    if (id == null || id is! String || id.isEmpty) {
+      throw FormatException(
+        'User.fromJson: missing or invalid required field "id" (got $id)',
+      );
+    }
+    if (name == null || name is! String || name.isEmpty) {
+      throw FormatException(
+        'User.fromJson: missing or invalid required field "name" (got $name)',
+      );
+    }
+    if (email == null || email is! String || email.isEmpty) {
+      throw FormatException(
+        'User.fromJson: missing or invalid required field "email" (got $email)',
+      );
+    }
+
     return User(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      profileImageUrl: json['profileImageUrl'],
-      bio: json['bio'] ?? '',
-      role: json['role'] ?? 'mentee',
+      id: id,
+      name: name,
+      email: email,
+      profileImageUrl: json['profileImageUrl'] as String?,
+      bio: json['bio'] as String? ?? '',
+      role: json['role'] as String? ?? 'mentee',
+      interests: List<String>.from(json['interests'] ?? []),
     );
   }
 
@@ -34,6 +57,7 @@ class User {
       'profileImageUrl': profileImageUrl,
       'bio': bio,
       'role': role,
+      'interests': interests,
     };
   }
 }

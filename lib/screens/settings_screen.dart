@@ -1,24 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../providers/theme_provider.dart';
+import '../providers/user_provider.dart';
+import '../services/auth_service.dart';
 import '../widgets/glow_circle.dart';
+import 'edit_profile_screen.dart';
+import 'login_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   final bool showNav;
   const SettingsScreen({super.key, this.showNav = true});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
+
+  Future<void> _onLogOut() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(AppStrings.logOutConfirmTitle),
+        content: const Text(AppStrings.logOutConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(AppStrings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              AppStrings.logOut,
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    await ref.read(authServiceProvider).logout();
+    ref.read(userProvider.notifier).clearUser();
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tt = Theme.of(context).textTheme;
+    final user = ref.watch(userProvider);
 
     return Scaffold(
       backgroundColor: isDark
@@ -87,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'John Doe',
+                                  user?.name ?? 'Guest',
                                   style: tt.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     color: isDark
@@ -97,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'john@example.com',
+                                  user?.email ?? '',
                                   style: tt.bodySmall?.copyWith(
                                     color: AppColors.slate500,
                                   ),
@@ -106,7 +146,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const EditProfileScreen(),
+                                ),
+                              );
+                            },
                             child: Text(
                               AppStrings.editProfile,
                               style: tt.labelMedium?.copyWith(
@@ -162,9 +208,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: AppStrings.darkMode,
                     isDark: isDark,
                     trailing: Switch.adaptive(
-                      value: _darkModeEnabled,
+                      value: isDark,
                       activeTrackColor: AppColors.primary,
-                      onChanged: (v) => setState(() => _darkModeEnabled = v),
+                      onChanged: (v) {
+                        ref.read(themeModeProvider.notifier).toggleDarkMode(v);
+                      },
                     ),
                   ),
                   _SettingsTile(
@@ -211,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: _onLogOut,
                         icon: const Icon(
                           Icons.logout_rounded,
                           color: AppColors.error,

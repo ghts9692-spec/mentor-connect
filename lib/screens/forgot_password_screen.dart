@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../services/auth_service.dart';
 import '../widgets/glow_circle.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  bool _isLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _headerFade;
@@ -55,14 +58,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     super.dispose();
   }
 
-  void _onSendResetLink() {
-    if (_formKey.currentState?.validate() ?? false) {
+  Future<void> _onSendResetLink() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authServiceProvider).sendPasswordResetEmail(_emailController.text.trim());
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password reset link sent! Check your email.'),
+          content: Text(AppStrings.resetLinkSent),
           backgroundColor: AppColors.success,
         ),
       );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -216,8 +231,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                   const SizedBox(height: 28),
 
                                   ElevatedButton(
-                                    onPressed: _onSendResetLink,
-                                    child: const Text(AppStrings.sendResetLink),
+                                    onPressed: _isLoading
+                                        ? null
+                                        : _onSendResetLink,
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(AppStrings.sendResetLink),
                                   ),
                                 ],
                               ),

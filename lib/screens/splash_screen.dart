@@ -202,7 +202,7 @@ class _LogoBox extends StatelessWidget {
       height: 128,
       width: 128,
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
@@ -212,31 +212,9 @@ class _LogoBox extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // Inner shine gradient (top-left → transparent)
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: const [0.0, 0.55],
-                colors: [
-                  Colors.white.withValues(alpha: 0.22),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-          const Center(
-            child: Icon(
-              Icons.diversity_3_rounded,
-              color: Colors.white,
-              size: 62,
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
       ),
     );
   }

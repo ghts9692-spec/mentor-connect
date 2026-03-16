@@ -235,7 +235,7 @@ class _LogoSection extends StatelessWidget {
           height: 100,
           width: 100,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
@@ -245,30 +245,9 @@ class _LogoSection extends StatelessWidget {
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    stops: const [0.0, 0.55],
-                    colors: [
-                      Colors.white.withValues(alpha: 0.22),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              const Center(
-                child: Icon(
-                  Icons.diversity_3_rounded,
-                  color: Colors.white,
-                  size: 48,
-                ),
-              ),
-            ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
           ),
         ),
         const SizedBox(height: 16),

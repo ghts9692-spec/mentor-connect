@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/mentor_model.dart';
+import '../models/session_model.dart';
+import '../providers/sessions_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/glow_circle.dart';
+import 'session_confirmation_screen.dart';
 
-class BookSessionScreen extends StatefulWidget {
-  const BookSessionScreen({super.key});
+class BookSessionScreen extends ConsumerStatefulWidget {
+  final Mentor mentor;
+
+  const BookSessionScreen({super.key, required this.mentor});
 
   @override
-  State<BookSessionScreen> createState() => _BookSessionScreenState();
+  ConsumerState<BookSessionScreen> createState() => _BookSessionScreenState();
 }
 
-class _BookSessionScreenState extends State<BookSessionScreen>
+class _BookSessionScreenState extends ConsumerState<BookSessionScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedDateIndex = 2;
+  int _selectedDateIndex = 0;
   int _selectedTimeIndex = 2;
   String _selectedTopic = AppStrings.careerGuidance;
   String _selectedDuration = AppStrings.sixtyMin;
@@ -20,15 +28,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
   late AnimationController _animController;
   late Animation<double> _fade;
 
-  final List<Map<String, String>> _dates = [
-    {'day': 'Mon', 'date': '3'},
-    {'day': 'Tue', 'date': '4'},
-    {'day': 'Wed', 'date': '5'},
-    {'day': 'Thu', 'date': '6'},
-    {'day': 'Fri', 'date': '7'},
-    {'day': 'Sat', 'date': '8'},
-    {'day': 'Sun', 'date': '9'},
-  ];
+  late final List<Map<String, String>> _dates;
 
   final List<String> _times = [
     '9:00 AM',
@@ -54,6 +54,12 @@ class _BookSessionScreenState extends State<BookSessionScreen>
   @override
   void initState() {
     super.initState();
+    _dates = List.generate(7, (i) {
+      final date = DateTime.now().add(Duration(days: i));
+      final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return {'day': weekdays[date.weekday - 1], 'date': date.day.toString()};
+    });
+
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -72,6 +78,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tt = Theme.of(context).textTheme;
+    final mentor = widget.mentor;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : Colors.white,
@@ -161,7 +168,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Sarah Jenkins',
+                                        mentor.name,
                                         style: tt.bodyMedium?.copyWith(
                                           fontWeight: FontWeight.w700,
                                           color: isDark
@@ -170,7 +177,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
                                         ),
                                       ),
                                       Text(
-                                        'Product Designer',
+                                        mentor.expertise,
                                         style: tt.labelSmall?.copyWith(
                                           color: AppColors.slate500,
                                         ),
@@ -187,7 +194,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '4.9',
+                                      '${mentor.rating}',
                                       style: tt.bodySmall?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: isDark
@@ -464,7 +471,7 @@ class _BookSessionScreenState extends State<BookSessionScreen>
               child: Row(
                 children: [
                   Text(
-                    '\$50',
+                    '\$${mentor.hourlyRate.toStringAsFixed(0)}',
                     style: tt.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isDark ? Colors.white : AppColors.slate900,
@@ -473,14 +480,62 @@ class _BookSessionScreenState extends State<BookSessionScreen>
                   const SizedBox(width: 20),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Session booked successfully!'),
-                            backgroundColor: AppColors.success,
-                          ),
+                      onPressed: () async {
+                        final user = ref.read(userProvider);
+                        if (user == null) return;
+
+                        // Build the session date from selection index
+                        final now = DateTime.now();
+                        final selectedDate = now.add(
+                          Duration(days: _selectedDateIndex),
                         );
-                        Navigator.of(context).pop();
+                        final timeStr = _times[_selectedTimeIndex];
+                        final isPm = timeStr.contains('PM');
+                        final parts = timeStr
+                            .replaceAll(RegExp(r'[AP]M'), '')
+                            .trim()
+                            .split(':');
+                        int hour = int.parse(parts[0]);
+                        if (isPm && hour != 12) hour += 12;
+                        if (!isPm && hour == 12) hour = 0;
+                        final sessionDate = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          hour,
+                          int.parse(parts[1]),
+                        );
+
+                        final session = Session(
+                          id: '',
+                          mentorId: mentor.id,
+                          mentorName: mentor.name,
+                          mentorExpertise: mentor.expertise,
+                          menteeId: user.id,
+                          topic: _selectedTopic,
+                          duration: _selectedDuration,
+                          dateTime: sessionDate,
+                          hourlyRate: mentor.hourlyRate,
+                        );
+
+                        try {
+                          final confirmedSession = await ref
+                              .read(sessionServiceProvider)
+                              .bookSession(session);
+                          if (!context.mounted) return;
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => SessionConfirmationScreen(
+                                session: confirmedSession,
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Booking failed: $e')),
+                          );
+                        }
                       },
                       child: const Text(AppStrings.confirmBooking),
                     ),

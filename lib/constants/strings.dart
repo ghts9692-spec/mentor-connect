@@ -128,6 +128,57 @@ class AppStrings {
   static const String aboutApp = 'About';
   static const String logOut = 'Log Out';
 
+  // Feedback / SnackBar messages
+  static const String selectYourRole = 'Please select your role';
+  static const String sessionBookedSuccess = 'Session booked successfully!';
+  static const String resetLinkSent =
+      'Password reset link sent! Check your email.';
+  static const String googleSignInCancelled = 'Google sign-in was cancelled.';
+  static const String googleSignInFailed = 'Google sign-in failed';
+  static const String loginFailed = 'Login failed';
+  static const String signingIn = 'Signing in...';
+  static const String readyToLearn = 'Ready to learn something new?';
+  static const String logOutConfirmTitle = 'Log Out';
+  static const String logOutConfirmBody = 'Are you sure you want to log out?';
+  static const String cancel = 'Cancel';
+  static const String exitConfirmTitle = 'Exit App';
+  static const String exitConfirmBody =
+      'Are you sure you want to exit Mentor Connect?';
+  static const String exit = 'Exit';
+
+  // Session Confirmation Screen
+  static const String sessionConfirmed = 'Session Confirmed!';
+  static const String sessionConfirmedSubtitle =
+      'Your session has been successfully booked.';
+  static const String viewMySessions = 'View My Sessions';
+  static const String backToHome = 'Back to Home';
+
+  // My Sessions Screen
+  static const String mySessions = 'My Sessions';
+  static const String upcoming = 'Upcoming';
+  static const String past = 'Past';
+  static const String noUpcomingSessions = 'No upcoming sessions';
+  static const String noPastSessions = 'No past sessions yet';
+  static const String noSessionsSubtitle =
+      'Book a session with a mentor to get started!';
+
+  // Session Detail Screen
+  static const String sessionDetail = 'Session Detail';
+  static const String joinSession = 'Join Session';
+  static const String cancelSession = 'Cancel Session';
+  static const String leaveReview = 'Leave a Review';
+  static const String cancelSessionConfirm = 'Cancel this session?';
+  static const String cancelSessionBody =
+      'This will cancel your booked session. This action cannot be undone.';
+  static const String sessionCancelledSuccess = 'Session cancelled.';
+
+  // Edit Profile Screen
+  static const String editProfileTitle = 'Edit Profile';
+  static const String saveChanges = 'Save Changes';
+  static const String profileUpdated = 'Profile updated successfully!';
+  static const String bioHint = 'Tell us a bit about yourself...';
+  static const String changePhoto = 'Change Photo';
+
   // Skill/Interest categories
   static const List<String> interestCategories = [
     'Design',

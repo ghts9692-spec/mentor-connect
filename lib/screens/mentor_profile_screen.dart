@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
+import '../models/mentor_model.dart';
 import 'book_session_screen.dart';
 import '../widgets/glow_circle.dart';
 
 class MentorProfileScreen extends StatelessWidget {
-  const MentorProfileScreen({super.key});
+  final Mentor mentor;
+
+  const MentorProfileScreen({super.key, required this.mentor});
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +81,7 @@ class MentorProfileScreen extends StatelessWidget {
                         const SizedBox(height: 16),
 
                         Text(
-                          'Sarah Jenkins',
+                          mentor.name,
                           style: tt.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: isDark ? Colors.white : AppColors.slate900,
@@ -86,7 +89,7 @@ class MentorProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Senior Product Designer at Google',
+                          mentor.title,
                           style: tt.bodyMedium?.copyWith(
                             color: isDark
                                 ? Colors.white.withValues(alpha: 0.6)
@@ -109,7 +112,7 @@ class MentorProfileScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'San Francisco, CA',
+                              mentor.location,
                               style: tt.labelMedium?.copyWith(
                                 color: isDark
                                     ? AppColors.slate400
@@ -117,25 +120,26 @@ class MentorProfileScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withValues(
-                                  alpha: 0.12,
+                            if (mentor.isAvailable)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
                                 ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                AppStrings.available,
-                                style: tt.labelSmall?.copyWith(
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.w600,
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  AppStrings.available,
+                                  style: tt.labelSmall?.copyWith(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
 
@@ -146,7 +150,7 @@ class MentorProfileScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _StatPill(
-                                value: '4.9 ★',
+                                value: '${mentor.rating} ★',
                                 label: AppStrings.rating,
                                 isDark: isDark,
                               ),
@@ -154,7 +158,7 @@ class MentorProfileScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _StatPill(
-                                value: '156',
+                                value: '${mentor.sessions}',
                                 label: AppStrings.sessions,
                                 isDark: isDark,
                               ),
@@ -162,7 +166,7 @@ class MentorProfileScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _StatPill(
-                                value: '5 Yrs',
+                                value: '${mentor.experienceYears} Yrs',
                                 label: AppStrings.experience,
                                 isDark: isDark,
                               ),
@@ -177,7 +181,7 @@ class MentorProfileScreen extends StatelessWidget {
                           title: AppStrings.about,
                           isDark: isDark,
                           child: Text(
-                            'Passionate product designer with 5+ years of experience at top tech companies. I love helping aspiring designers navigate their career path and build exceptional portfolios.',
+                            mentor.about,
                             style: tt.bodyMedium?.copyWith(
                               height: 1.6,
                               color: isDark
@@ -196,19 +200,11 @@ class MentorProfileScreen extends StatelessWidget {
                           child: Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children:
-                                [
-                                      'Product Design',
-                                      'UX Research',
-                                      'Design Systems',
-                                      'Prototyping',
-                                      'User Testing',
-                                    ]
-                                    .map(
-                                      (s) =>
-                                          _SkillChip(label: s, isDark: isDark),
-                                    )
-                                    .toList(),
+                            children: mentor.skills
+                                .map(
+                                  (s) => _SkillChip(label: s, isDark: isDark),
+                                )
+                                .toList(),
                           ),
                         ),
 
@@ -216,7 +212,7 @@ class MentorProfileScreen extends StatelessWidget {
 
                         // Reviews
                         _Section(
-                          title: '${AppStrings.reviews} (24)',
+                          title: '${AppStrings.reviews} (${mentor.reviews})',
                           isDark: isDark,
                           child: Column(
                             children: [
@@ -225,7 +221,7 @@ class MentorProfileScreen extends StatelessWidget {
                                 rating: 5,
                                 date: '2 weeks ago',
                                 text:
-                                    'Sarah is an incredible mentor! Her feedback on my portfolio was detailed and actionable.',
+                                    '${mentor.name} is an incredible mentor! The feedback was detailed and actionable.',
                                 isDark: isDark,
                               ),
                               const SizedBox(height: 12),
@@ -234,7 +230,7 @@ class MentorProfileScreen extends StatelessWidget {
                                 rating: 5,
                                 date: '1 month ago',
                                 text:
-                                    'Great session on career planning. Sarah helped me set clear goals.',
+                                    'Great session on career planning. ${mentor.name.split(' ').first} helped me set clear goals.',
                                 isDark: isDark,
                               ),
                             ],
@@ -279,7 +275,7 @@ class MentorProfileScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '\$50',
+                        '\$${mentor.hourlyRate.toStringAsFixed(0)}',
                         style: tt.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: isDark ? Colors.white : AppColors.slate900,
@@ -299,7 +295,7 @@ class MentorProfileScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const BookSessionScreen(),
+                            builder: (_) => BookSessionScreen(mentor: mentor),
                           ),
                         );
                       },
@@ -411,7 +407,7 @@ class _SkillChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.primary,

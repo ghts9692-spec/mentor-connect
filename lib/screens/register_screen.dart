@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/strings.dart';
-import 'profile_setup_screen.dart';
+import '../services/auth_service.dart';
+import '../providers/user_provider.dart';
+import 'home_dashboard_screen.dart';
 import '../widgets/glow_circle.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
+class _RegisterScreenState extends ConsumerState<RegisterScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
+  String _selectedRole = 'mentee'; // 'mentee' or 'mentor'
 
   late AnimationController _animController;
   late Animation<double> _headerFade;
@@ -59,32 +65,49 @@ class _RegisterScreenState extends State<RegisterScreen>
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _onRegister() {
-    if (_formKey.currentState?.validate() ?? false) {
-      if (!_agreedToTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please agree to the Terms and Privacy Policy'),
-          ),
-        );
-        return;
-      }
+  Future<void> _onRegister() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please agree to the Terms and Privacy Policy'),
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        role: _selectedRole,
+      );
+      if (!mounted) return;
+      ref.read(userProvider.notifier).setUser(user);
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
-          pageBuilder: (_, _, _) => const ProfileSetupScreen(),
-          transitionsBuilder: (_, anim, _, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-              child: child,
-            );
-          },
+          pageBuilder: (_, __, ___) => const HomeDashboardScreen(),
+          transitionsBuilder: (_, anim, __, child) => FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+            child: child,
+          ),
           transitionDuration: const Duration(milliseconds: 400),
         ),
         (_) => false,
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -375,8 +398,17 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                                   // Register button
                                   ElevatedButton(
-                                    onPressed: _onRegister,
-                                    child: const Text(AppStrings.createAccount),
+                                    onPressed: _isLoading ? null : _onRegister,
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(AppStrings.createAccount),
                                   ),
                                 ],
                               ),
